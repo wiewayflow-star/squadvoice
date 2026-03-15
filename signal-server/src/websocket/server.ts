@@ -1,6 +1,11 @@
 import WebSocket from 'ws';
-import { SignalingProtocol, WSMessage } from '@squadvoice/shared';
 import { verifyToken } from '../auth/auth';
+
+type WSMessageType = 'register' | 'login' | 'join_channel' | 'leave_channel' | 'signal' | 'ice_candidate' | 'peer_joined' | 'peer_left' | 'error';
+interface WSMessage { type: WSMessageType; payload: any; timestamp: number; }
+const parseMessage = (data: string): WSMessage => JSON.parse(data);
+const createMessage = (type: WSMessageType, payload: any): WSMessage => ({ type, payload, timestamp: Date.now() });
+const serializeMessage = (msg: WSMessage): string => JSON.stringify(msg);
 
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
@@ -51,7 +56,7 @@ export class SignalingServer {
 
   private async handleMessage(ws: AuthenticatedWebSocket, data: string) {
     try {
-      const message: WSMessage = SignalingProtocol.parseMessage(data);
+      const message: WSMessage = parseMessage(data);
 
       switch (message.type) {
         case 'login':
@@ -218,8 +223,8 @@ export class SignalingServer {
   }
 
   private send(ws: WebSocket, type: string, payload: any) {
-    const message = SignalingProtocol.createMessage(type as any, payload);
-    ws.send(SignalingProtocol.serializeMessage(message));
+    const message = createMessage(type as WSMessageType, payload);
+    ws.send(serializeMessage(message));
   }
 
   private sendError(ws: WebSocket, error: string) {

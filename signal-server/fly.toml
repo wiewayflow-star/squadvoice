@@ -1,5 +1,4 @@
-[app]
-name = "squadvoice-signal"
+app = "squadvoice-signal"
 primary_region = "ams"
 
 [build]
