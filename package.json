@@ -1,0 +1,22 @@
+{
+  "name": "squadvoice",
+  "version": "0.1.0",
+  "description": "P2P voice and text communication platform with maximum privacy",
+  "private": true,
+  "workspaces": [
+    "signal-server",
+    "telegram-bot",
+    "shared"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=desktop-client",
+    "dev:server": "npm run dev --workspace=signal-server",
+    "dev:bot": "npm run dev --workspace=telegram-bot",
+    "build:client": "npm run build --workspace=desktop-client",
+    "build:server": "npm run build --workspace=signal-server",
+    "install:all": "npm install && npm install --workspaces"
+  },
+  "keywords": ["voip", "p2p", "e2e-encryption", "voice-chat", "teamspeak"],
+  "author": "SquadVoice Team",
+  "license": "MIT"
+}
