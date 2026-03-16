@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { generateKeyPair } from '../../../crypto/keys';
+import { API_URL } from '../../config';
 
 interface ProfileStepProps {
   formData: any;
@@ -36,10 +37,36 @@ function ProfileStep({ formData, onComplete, onBack }: ProfileStepProps) {
       const keyPair = await generateKeyPair();
       const publicKeyBase64 = btoa(String.fromCharCode(...keyPair.publicKey));
 
-      // Store keys locally
       localStorage.setItem('private_key', btoa(String.fromCharCode(...keyPair.privateKey)));
       localStorage.setItem('public_key', publicKeyBase64);
 
+      // Try to register on server
+      try {
+        const response = await fetch(`${API_URL}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nickname: formData.nickname,
+            password: formData.password,
+            publicKey: publicKeyBase64,
+            displayName,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          localStorage.setItem('auth_token', data.token);
+          onComplete(data.user, data.token);
+          return;
+        }
+        if (response.status === 409) {
+          setError('Nickname already taken');
+          return;
+        }
+      } catch {
+        // Server unavailable — fallback to local
+      }
+
+      // Local fallback
       const user = {
         id: crypto.randomUUID(),
         nickname: formData.nickname,
@@ -47,7 +74,6 @@ function ProfileStep({ formData, onComplete, onBack }: ProfileStepProps) {
         publicKey: publicKeyBase64,
         createdAt: new Date().toISOString(),
       };
-
       localStorage.setItem('user', JSON.stringify(user));
       onComplete(user, 'local-token');
     } catch (err) {

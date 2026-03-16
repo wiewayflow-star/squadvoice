@@ -11,71 +11,48 @@ const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 console.log('SquadVoice Telegram Bot started');
 
-// Handle /start command with verification code
+// /start <userId> — user clicked "Link Telegram" in the app
 bot.onText(/\/start (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
-  const code = match?.[1];
+  const telegramId = msg.from?.id;
+  const userId = match?.[1];
 
-  if (!code) {
-    bot.sendMessage(chatId, 'Invalid verification code. Please use the link from SquadVoice app.');
+  if (!userId || !telegramId) {
+    bot.sendMessage(chatId, '❌ Invalid link. Please use the button in SquadVoice app.');
     return;
   }
 
   try {
-    // Verify code with signal server
-    const response = await axios.post(`${SIGNAL_SERVER_URL}/api/telegram/verify`, {
-      code,
-      telegramId: msg.from?.id,
+    // Save telegram_id to the pending link and get the code
+    const res = await axios.post(`${SIGNAL_SERVER_URL}/api/telegram/save-telegram-id`, {
+      userId,
+      telegramId,
     });
 
-    if (response.data.success) {
-      bot.sendMessage(
-        chatId,
-        '✅ Your Telegram account has been successfully linked to SquadVoice!\n\n' +
-        'You will now receive notifications about:\n' +
-        '• Mentions in channels\n' +
-        '• Direct messages\n' +
-        '• Server invites'
-      );
-    }
-  } catch (error: any) {
-    console.error('Error verifying Telegram link:', error);
+    const code: string = res.data.code;
+
+    // Send code to user
     bot.sendMessage(
       chatId,
-      '❌ Failed to link your account. The verification code may be invalid or expired.\n\n' +
-      'Please try again from the SquadVoice app.'
+      `🔐 Your SquadVoice verification code:\n\n` +
+      `<b>${code.split('').join('  ')}</b>\n\n` +
+      `Enter this code in the app to link your account.`,
+      { parse_mode: 'HTML' }
     );
+  } catch (error) {
+    console.error('Error saving telegram id:', error);
+    bot.sendMessage(chatId, '❌ Something went wrong. Please try again from the app.');
   }
 });
 
-// Handle /start without code
+// /start without args
 bot.onText(/\/start$/, (msg) => {
-  const chatId = msg.chat.id;
   bot.sendMessage(
-    chatId,
-    '👋 Welcome to SquadVoice!\n\n' +
-    'To link your Telegram account:\n' +
-    '1. Open SquadVoice desktop app\n' +
-    '2. Go to Settings → Link Telegram\n' +
-    '3. Click the link to open this bot with a verification code'
+    msg.chat.id,
+    '👋 Welcome to SquadVoice!\n\nTo link your account, click "Link Telegram" in the SquadVoice desktop app.'
   );
 });
 
-// Handle /help command
-bot.onText(/\/help/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(
-    chatId,
-    '📖 SquadVoice Bot Help\n\n' +
-    'Commands:\n' +
-    '/start <code> - Link your Telegram account\n' +
-    '/help - Show this help message\n' +
-    '/unlink - Unlink your Telegram account\n\n' +
-    'For more information, visit: https://squadvoice.io'
-  );
-});
-
-// Handle errors
 bot.on('polling_error', (error) => {
   console.error('Polling error:', error);
 });

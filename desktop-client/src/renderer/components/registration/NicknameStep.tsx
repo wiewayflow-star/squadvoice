@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../../config';
 
 interface NicknameStepProps {
   onNext: (nickname: string) => void;
@@ -18,7 +19,24 @@ function NicknameStep({ onNext }: NicknameStepProps) {
       setError('Only letters, numbers and underscores allowed');
       return;
     }
-    onNext(nickname);
+
+    setChecking(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_URL}/api/check-nickname/${nickname}`);
+      const data = await response.json();
+      if (data.available) {
+        onNext(nickname);
+      } else {
+        setError('Nickname already taken');
+      }
+    } catch {
+      // Server unavailable — allow offline
+      onNext(nickname);
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
